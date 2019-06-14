@@ -5,34 +5,46 @@
 #include <iostream>
 
 
-typedef std::function<double( double )> HyperbolicFunc;
+
+// A function that pass a double argument and return an double value
+using  FunctionDefn = std::function<double( double )> ;
 
 
-std::vector<HyperbolicFunc> funcs = {
+// Initializing a vector containing four functions
+static std::vector<FunctionDefn> functions = {
   sinh,
   cosh,
   tanh,
+  log,
   []( double x )
   {
     return x * x;
+  },
+  []( double x )
+  {
+    return ( x - 32.0 ) *  5.0 / 9.0;
   }
 };
 
-std::vector<HyperbolicFunc> inverseFuncs = {
+// Initializing a vector containing four functions
+static std::vector<FunctionDefn> inverseFunctions = {
   asinh,
   acosh,
   atanh,
+  exp,
   []( double x )
   {
     return exp( log( x ) / 2 );
+  },
+  []( double x )
+  {
+    return ( x * 9.0 / 5.0 ) + 32.0;
   }
 };
 
 
 template <typename A, typename B, typename C>
-std::function<C( A )> compose(
-  std::function<C( B )> f,
-  std::function<B( A )> g )
+std::function<C( A )> composed( std::function<C( B )> f, std::function<B( A )> g )
 {
   return [f, g]( A x ) {
     return f( g( x ) );
@@ -41,20 +53,36 @@ std::function<C( A )> compose(
 
 auto main() -> int
 {
-  std::vector<HyperbolicFunc> composedFuncs;
+  std::vector<FunctionDefn> composedFuncs;
   std::vector<double> nums;
 
-  for ( int i = 1; i <= 5; ++i ) {
-    nums.push_back( i * 0.2 );
+  for ( size_t i = 1; i <= functions.size(); ++i ) {
+    nums.push_back( i * 1.50 );
   }
 
+  for ( auto num : nums ) {
+    for ( auto func : functions ) {
+      std::cout << "num=" << num << "  from functions = " << func( num ) << std::endl;
+    }
 
+    std::cout << "---------------" << std::endl;
+  }
+
+  for ( auto num : nums ) {
+    for ( auto func : inverseFunctions ) {
+      std::cout <<  "num=" << num << "  from inverseFunctions = " << func( num ) << std::endl;
+    }
+
+    std::cout << "---------------" << std::endl;
+  }
+
+  // Transforming the element inside the vector
   transform(
-    begin( inverseFuncs ),
-    end( inverseFuncs ),
-    begin( funcs ),
+    begin( inverseFunctions ),
+    end( inverseFunctions ),
+    begin( functions ),
     back_inserter( composedFuncs ),
-    compose<double, double, double> );
+    composed<double, double, double> );
 
   for ( auto num : nums ) {
     for ( auto func : composedFuncs ) {
