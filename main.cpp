@@ -1,102 +1,56 @@
-#include <string>
-#include <iostream>
-#include <vector>
 #include <algorithm>
-#include <type_traits>
 #include <functional>
+#include <iostream>
+#include <string>
+#include <type_traits>
+#include <vector>
 
-template <typename T>
-std::vector<T> make_vector( T&& value )
+#include <experimental/filesystem>
+#include <range/v3/view/filter.hpp>
+#include <range/v3/view/join.hpp>
+#include <range/v3/view/transform.hpp>
+
+using namespace ranges::v3;
+
+namespace fs = std::experimental::filesystem;
+
+// Monadic binding is a composition of transform and join.
+// We already have those defined in the ranges library,
+// so we just need to apply them to the input range.
+template<typename Range, typename F>
+auto mbind( const Range& range, F&& f )
 {
-  return { std::forward<T>( value ) };
+  return range | view::transform( std::forward<F>( f ) ) | view::join;
 }
 
-
-template <typename T, typename F>
-auto mbind( const std::vector<T>& xs, F f )
+// Ranges views can be composed using the same pipe operator
+// used for applying a view to a range.
+template<typename F>
+decltype( auto ) mbind( F&& f )
 {
-  // We will return a new vector containing transformed items.
-  // The function f takes a value of type T and returns
-  // a vector of some type R -- std::vector<R>.
-  // The mbind function calls f on each of the values in xs
-  // and joins all the resulting vectors into one.
-  // This means that mbind also returns std::vector<R>
-  using result_vector_type =
-    std::invoke_result_t<F, T>;
-
-  // invoke_result_t can be replaced with decltype(f(xs[0]))
-  // if you don't have a C++17-compliant compiler
-
-  result_vector_type result;
-
-  for ( const auto& x : xs ) {
-    auto transformed = std::invoke( f, x );
-
-    // Moving all items from transformed into the result
-    result.insert(
-      result.end(),
-      std::make_move_iterator( transformed.begin() ),
-      std::make_move_iterator( transformed.end() ) );
-  }
-
-  return result;
+  return view::transform( std::forward<F>( f ) ) | view::join;
 }
 
-
-// If we want to support the xs | mbind(f) syntax,
-// we also need a unary mbind function which takes just
-// the transformation used for monadic binding.
-// This function will just create a dummy helper object
-// for which we can define operator| that will
-// perform the actual monadic binding
-
-namespace detail {
-template <typename F>
-struct mbind_helper {
-  F f;
+auto files_in_dir( const fs::directory_entry& dir )
+{
+  return make_iterator_range( fs::directory_iterator{dir.path()}, fs::directory_iterator{} );
 };
 
-} // namespace detail
-
-
-template <typename F>
-detail::mbind_helper<F> mbind( F&& f )
+int main( int, char* [] )
 {
-  return {std::forward<F>( f )};
-}
+  auto directories = ranges::make_iterator_range( fs::directory_iterator{".."},
+                                                  fs::directory_iterator{} )
+  | view::filter( []( auto&& item ) { return is_directory( item ); } )
+  | view::filter( []( auto&& item ) {
+    return item.path().string().find( "paintlines" ) != std::string::npos;
+  } );
 
-template <typename T, typename F>
-auto operator| ( const std::vector<T>& xs, const detail::mbind_helper<F>& helper )
-{
-  return mbind( xs, helper.f );
-}
+  std::cout << "**  Listing files with xs | mbind(f)" << std::endl;
 
-
-
-
-int main( int argc, char* argv[] )
-{
-  std::vector<std::string> directories{ "src", "build" };
-
-  // Just for testing purposes, let's create a dummy function
-  // which pretends to list files in a directory
-  auto files_in_dir = [] ( const std::string & dir ) {
-    return std::vector<std::string> {
-      dir + "/file1.txt",
-      dir + "/file2.txt"
-    };
-  };
-
-  std::cout << "Listing files with mbind(xs, f)" << std::endl;
-
-  for ( const auto& file : mbind( directories, files_in_dir ) ) {
-    std::cout << file << std::endl;
-  }
-
-  std::cout << "Listing files with xs | mbind(f)" << std::endl;
+  int ctr{0};
 
   for ( const auto& file : directories | mbind( files_in_dir ) ) {
-    std::cout << file << std::endl;
+    std::cout << ++ctr << "  " << file << std::endl;
   }
 
   return 0;
