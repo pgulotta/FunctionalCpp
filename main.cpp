@@ -9,8 +9,9 @@
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/join.hpp>
 #include <range/v3/view/transform.hpp>
+#include <range/v3/view/subrange.hpp>
 
-using namespace ranges::v3;
+using namespace ranges;
 
 namespace fs = std::experimental::filesystem;
 
@@ -33,13 +34,13 @@ decltype( auto ) mbind( F&& f )
 
 auto files_in_dir( const fs::directory_entry& dir )
 {
-  return make_iterator_range( fs::directory_iterator{dir.path()}, fs::directory_iterator{} );
+  return ranges::make_subrange( fs::directory_iterator{dir.path()}, fs::directory_iterator{} );
 };
 
 int main( int, char* [] )
 {
-  auto directories = ranges::make_iterator_range( fs::directory_iterator{".."},
-                                                  fs::directory_iterator{} )
+  auto directories = ranges::make_subrange( fs::directory_iterator{".."},
+                                            fs::directory_iterator{} )
   | view::filter( []( auto&& item ) { return is_directory( item ); } )
   | view::filter( []( auto&& item ) {
     return item.path().string().find( "paintlines" ) != std::string::npos;

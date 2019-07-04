@@ -11,6 +11,8 @@ QMAKE_CXXFLAGS += -pthread
 LIBS += -pthread
 LIBS +=  -lstdc++fs
 
+INCLUDEPATH += $$PWD/../range-v3/include
+
 
 HEADERS += $$files(*.hpp, true)
 
