@@ -1,4 +1,3 @@
-
 #include <range/v3/all.hpp>
 #include <numeric>
 #include <iostream>
@@ -25,5 +24,6 @@ int main()
   std::cout << "total: " << total << std::endl << std::endl;
 
 }
+
 
 
