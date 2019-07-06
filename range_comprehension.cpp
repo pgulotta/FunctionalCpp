@@ -1,6 +1,5 @@
 #include <range/v3/all.hpp>
 #include <iostream>
-#include <tuple>
 
 using namespace ranges;
 
@@ -16,19 +15,4 @@ int main()
 
   std::cout << "\n\n";
 
-  auto triples =
-  view::for_each( view::ints( 1, ranges::unreachable ), []( int z ) {
-    return view::for_each( view::ints( 1, z ), [ = ]( int x ) {
-      return view::for_each( view::ints( x, z ), [ = ]( int y ) {
-        return yield_if( x * x + y * y == z * z, std::make_tuple( x, y, z ) );
-      } );
-    } );
-  } );
-
-
-
-  std::cout << "\n\n";
 }
-
-
-
