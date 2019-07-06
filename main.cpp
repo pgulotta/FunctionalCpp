@@ -10,7 +10,7 @@ int main()
 
   auto odds = view::ints( 1, ranges::unreachable ) | view::for_each( []( int i ) { return yield_if( i % 2 == 1, i * i ); } );
 
-  ranges::for_each( odds | view::take_while( []( int i ) { return i < 1000; } ), []( int i ) {
+  ranges::for_each( odds | view::take_while( []( int i ) { return i < 1000000; } ), []( int i ) {
     std::cout << i << " ";
   } );
 
@@ -25,9 +25,9 @@ int main()
     } );
   } );
 
+  auto resultVector = triples | view::take_exactly( 7 ) | to_vector;
 
-
-  std::cout << "\n\n";
+  std::cout << "triples size = " << resultVector.size() << "\n\n";
 }
 
 
