@@ -1,34 +1,77 @@
-#include <range/v3/all.hpp>
 #include <iostream>
-#include <tuple>
+#include <vector>
+#include <functional>
+
+#include <range/v3/view.hpp>
+#include <range/v3/action.hpp>
+#include <range/v3/view/istream.hpp>
+#include <range/v3/range/conversion.hpp>
 
 using namespace ranges;
 
-int main()
+
+//using namespace std::placeholders;
+
+std::string string_to_lower( const std::string& s )
 {
-  std::cout << std::endl;
-
-  auto odds = view::ints( 1, ranges::unreachable ) | view::for_each( []( int i ) { return yield_if( i % 2 == 1, i * i ); } );
-
-  ranges::for_each( odds | view::take_while( []( int i ) { return i < 1000000; } ), []( int i ) {
-    std::cout << i << " ";
-  } );
-
-  std::cout << "\n\n";
-
-  auto triples =
-  view::for_each( view::ints( 1, ranges::unreachable ), []( int z ) {
-    return view::for_each( view::ints( 1, z ), [ = ]( int x ) {
-      return view::for_each( view::ints( x, z ), [ = ]( int y ) {
-        return yield_if( x * x + y * y == z * z, std::make_tuple( x, y, z ) );
-      } );
-    } );
-  } );
-
-  auto resultVector = triples | view::take_exactly( 7 ) | to_vector;
-
-  std::cout << "triples size = " << resultVector.size() << "\n\n";
+  return s | view::transform( tolower );
 }
 
+std::string string_only_alnum( const std::string& s )
+{
+  return s | view::filter( isalnum );
+}
 
+int main( int argc, char* argv[] )
+{
+  const int n = argc <= 1
+                ? 20
+                : atoi( argv[1] );
+
+  const auto words =
+    // Getting a range of words (tokens) from cin
+    istream_range<std::string>( std::cin )
+
+    // Converting all words to lower-case
+    | view::transform( string_to_lower )
+
+    // Removing non alphanumeric characters from the words
+    | view::transform( string_only_alnum )
+
+    // Some words could have only contained non alphanumeric characters
+    | view::remove_if( &std::string::empty )
+
+    // For sorting, we need a random-access collection
+    | to_vector | action::sort;
+
+
+  const auto results =
+    words
+
+    // Grouping the same words
+    | view::group_by( std::equal_to<>() )
+
+    // Creating a pair that consists of a word and its
+    // frequency
+  | view::transform( [] ( const auto & group ) {
+    const auto begin       = std::begin( group );
+    const auto end         = std::end( group );
+    const long  count       = distance( begin, end );
+    const std::string word = *begin;
+
+    return std::make_pair( count, word );
+  } )
+
+  // Sorting the resulting range by word frequencies
+  | to_vector | action::sort;
+
+
+  for ( auto value : results | view::reverse // Most frequent words first
+        | view::take( n ) // Taking the top `n` results
+      ) {
+    std::cout << value.first << " " << value.second << std::endl;
+  }
+
+  return 0;
+}
 
